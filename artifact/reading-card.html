@@ -1,0 +1,562 @@
+<title>読書カード</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@500;700;900&family=BIZ+UDPGothic:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout: 図書館の貸出カード — 上に統計の「貸出記録」、下に背表紙が並ぶ書架。本を開くとカードが一枚引き出される */
+:root {
+  --bg: #eef0ec;        /* 再生紙のような薄い灰緑 */
+  --card: #f9faf7;
+  --ink: #1b2420;
+  --ink-2: #4c5852;
+  --ink-3: #7f8a84;
+  --rule: #cfd5cf;
+  --cloth: #1f4a3a;     /* 図書館の装丁クロス（深緑） */
+  --cloth-ink: #f1f4ee;
+  --stamp: #8a2f2a;     /* 日付スタンプ */
+  --shadow: 0 1px 2px rgba(20,35,28,.14), 0 10px 24px -14px rgba(20,35,28,.45);
+  --display: 'Zen Old Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  --body: 'BIZ UDPGothic', 'Hiragino Sans', 'Yu Gothic', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121815; --card: #1a221e; --ink: #e5ebe6; --ink-2: #aeb9b2; --ink-3: #7a8780; --rule: #2e3a34;
+  --cloth: #7fb59c; --cloth-ink: #0f1a15; --stamp: #e0877d; --shadow: 0 1px 2px rgba(0,0,0,.5), 0 12px 28px -14px rgba(0,0,0,.85); color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #121815; --card: #1a221e; --ink: #e5ebe6; --ink-2: #aeb9b2; --ink-3: #7a8780; --rule: #2e3a34;
+  --cloth: #7fb59c; --cloth-ink: #0f1a15; --stamp: #e0877d; --shadow: 0 1px 2px rgba(0,0,0,.5), 0 12px 28px -14px rgba(0,0,0,.85); color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.75; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+button, input, textarea, select { font: inherit; color: inherit; }
+h1, h2, h3 { text-wrap: balance; }
+
+header.mast { padding-block: 40px 20px; border-bottom: 1px solid var(--rule); }
+.mast-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.mast h1 { font-family: var(--display); font-weight: 900; font-size: clamp(34px, 6.5vw, 56px); line-height: 1.1; margin: 0; letter-spacing: .06em; }
+.mast .call { font-family: var(--mono); font-size: 12px; color: var(--ink-3); letter-spacing: .08em; }
+.mast .src { margin: 8px 0 0; font-size: 13px; color: var(--ink-3); }
+
+/* 貸出記録（統計） */
+.ledger { padding-block: 24px 8px; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.tabs button { border: 1px solid var(--rule); background: transparent; border-radius: 3px; padding: 3px 12px; cursor: pointer; font-family: var(--mono); font-size: 13px; color: var(--ink-2); }
+.tabs button[aria-selected="true"] { background: var(--cloth); color: var(--cloth-ink); border-color: var(--cloth); }
+.figs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: var(--card); border: 1px solid var(--rule); border-radius: 4px; }
+.fig { padding-block: 14px 12px; padding-inline: 16px; border-right: 1px dashed var(--rule); min-width: 0; }
+.fig:last-child { border-right: 0; }
+.fig .l { font-size: 12px; color: var(--ink-3); display: block; }
+.fig .n { font-family: var(--display); font-weight: 900; font-size: clamp(30px, 5vw, 44px); line-height: 1.15; font-variant-numeric: tabular-nums; }
+.fig .u { font-size: 12px; color: var(--ink-2); margin-left: 4px; }
+.fig:first-child .n { color: var(--cloth); }
+@media (max-width: 640px) {
+  .figs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fig:nth-child(2) { border-right: 0; }
+  .fig:nth-child(-n+2) { border-bottom: 1px dashed var(--rule); }
+}
+.chart { margin-top: 18px; }
+.chart .cap { font-size: 12px; color: var(--ink-3); margin-bottom: 6px; }
+.bars { display: grid; gap: 6px; align-items: end; height: 120px; border-bottom: 1px solid var(--ink-3); background-image: linear-gradient(var(--rule) 1px, transparent 1px); background-size: 100% 25%; }
+.bar-col { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; min-width: 0; }
+.bar-col .v { font-family: var(--mono); font-size: 11px; color: var(--ink-2); line-height: 1.2; }
+.bar-col .b { width: 100%; max-width: 30px; background: var(--cloth); border-radius: 2px 2px 0 0; }
+.xl { display: grid; gap: 6px; margin-top: 4px; }
+.xl span { text-align: center; font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+.fine { font-size: 12px; color: var(--ink-3); margin: 12px 0 0; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.btn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--cloth); background: var(--cloth); color: var(--cloth-ink); padding: 7px 14px; border-radius: 3px; cursor: pointer; text-decoration: none; font-size: 14px; line-height: 1.4; }
+.btn.line { background: transparent; color: var(--ink); border-color: var(--ink-3); }
+.btn.small { font-size: 12px; padding: 4px 10px; }
+.btn:disabled { opacity: .55; cursor: progress; }
+:focus-visible { outline: 2px solid var(--stamp); outline-offset: 2px; }
+
+/* 書架 */
+.shelf-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 32px 0 14px; }
+.shelf-head h2 { font-family: var(--display); font-size: 22px; margin: 0; }
+.shelf-head h2 small { font-family: var(--mono); font-size: 13px; color: var(--ink-3); font-weight: 400; margin-left: 8px; }
+#q { border: 1px solid var(--rule); background: var(--card); border-radius: 3px; padding: 5px 10px; width: min(240px, 100%); }
+.shelf { list-style: none; margin: 0 0 72px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 26px 18px; }
+@media (max-width: 480px) { .shelf { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 12px; } }
+.book { all: unset; cursor: pointer; display: block; width: 100%; }
+.book:focus-visible { outline: 2px solid var(--stamp); outline-offset: 3px; }
+.book .t { font-size: 12.5px; line-height: 1.45; margin-top: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.book .d { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+.marks { display: flex; gap: 4px; margin-top: 3px; flex-wrap: wrap; }
+.mark { font-size: 10px; border: 1px solid var(--stamp); color: var(--stamp); border-radius: 2px; padding: 0 4px; line-height: 1.5; }
+.cover { position: relative; aspect-ratio: 2 / 3; max-width: 100%; border-radius: 2px 4px 4px 2px; overflow: hidden; box-shadow: var(--shadow); background: var(--rule); }
+.cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cover::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 7%; background: linear-gradient(90deg, rgba(0,0,0,.22), rgba(255,255,255,.06), transparent); pointer-events: none; }
+.book:hover .cover { transform: translateY(-3px); }
+@media (prefers-reduced-motion: no-preference) { .cover { transition: transform .18s; } }
+.typo { position: absolute; inset: 0; padding: 14% 12% 10% 17%; display: flex; flex-direction: column; justify-content: space-between; color: #eef1ea; }
+.typo .tt { font-family: var(--display); font-weight: 700; font-size: 13px; line-height: 1.45; word-break: break-all; overflow: hidden; }
+.typo .lbl { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; opacity: .7; border-top: 1px solid currentColor; padding-top: 4px; }
+.big .typo .tt { font-size: 20px; }
+
+/* 貸出カード（詳細） */
+.sheet[hidden] { display: none !important; }
+.sheet { position: fixed; inset: 0; z-index: 50; background: rgba(12,20,16,.55); overflow-y: auto; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.card { position: relative; max-width: 940px; margin: 32px auto; background: var(--card); border-radius: 6px; box-shadow: 0 30px 80px rgba(0,0,0,.4); padding-block: 28px 36px; padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px)); }
+@media (max-width: 720px) { .card { margin: 0; border-radius: 0; min-height: 100%; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); } }
+.x { position: absolute; top: 12px; right: max(12px, env(safe-area-inset-right, 0px)); border: 1px solid var(--rule); background: var(--bg); width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer; z-index: 2; }
+.card-grid { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 30px; }
+@media (max-width: 720px) { .card-grid { grid-template-columns: minmax(0, 1fr); gap: 18px; } .side { width: 46%; margin: 0 auto; } }
+.side { display: flex; flex-direction: column; gap: 10px; }
+.card h2 { font-family: var(--display); font-weight: 900; font-size: clamp(21px, 3vw, 28px); line-height: 1.4; margin: 0 48px 10px 0; }
+.meta { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); padding-bottom: 12px; border-bottom: 1px solid var(--rule); }
+.meta input { border: 1px solid var(--rule); background: var(--bg); border-radius: 3px; padding: 2px 6px; font-family: var(--mono); }
+.stampdate { font-family: var(--mono); color: var(--stamp); border: 1.5px solid var(--stamp); border-radius: 3px; padding: 0 6px; transform: rotate(-2deg); display: inline-block; }
+.meta a { color: var(--ink-2); }
+.sec { padding-block: 16px; border-bottom: 1px solid var(--rule); }
+.sec h3 { font-size: 12px; letter-spacing: .14em; color: var(--cloth); margin: 0 0 8px; font-weight: 700; }
+.prose { white-space: pre-wrap; font-family: var(--display); font-size: 15.5px; line-height: 1.95; max-width: 40em; }
+.prose:empty { display: none; }
+textarea { width: 100%; border: 1px solid var(--rule); background: var(--bg); border-radius: 4px; padding: 12px; font-family: var(--display); font-size: 15.5px; line-height: 1.9; resize: vertical; }
+.hint { font-size: 12px; color: var(--ink-3); margin: 4px 0 0; min-height: 1.2em; }
+.rec-on { background: var(--stamp) !important; border-color: var(--stamp) !important; color: var(--card) !important; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+@media (prefers-reduced-motion: no-preference) { .rec-on .dot { animation: blink 1s infinite; } }
+@keyframes blink { 50% { opacity: .25; } }
+.timer { font-family: var(--mono); font-size: 13px; color: var(--ink-2); }
+.voices { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 10px; }
+.voices li { border: 1px solid var(--rule); border-radius: 4px; padding: 10px 12px; background: var(--bg); }
+.voices audio { width: 100%; height: 36px; }
+.vm { display: flex; justify-content: space-between; gap: 8px; font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+.vt { font-family: var(--display); font-size: 14px; margin: 6px 0 0; white-space: pre-wrap; }
+.linkish { border: 0; background: none; color: var(--ink-3); cursor: pointer; font-size: 11px; text-decoration: underline; padding: 0; }
+.confirm { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; }
+.ai { background: var(--bg); border-left: 3px solid var(--cloth); padding: 14px 16px; border-radius: 0 4px 4px 0; margin-top: 12px; font-size: 14.5px; }
+.ai-meta { font-family: var(--mono); font-size: 11px; color: var(--ink-3); margin-top: 6px; }
+.ro .edit-only { display: none !important; }
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 16px; border-radius: 999px; font-size: 13px; z-index: 99; max-width: calc(100vw - 32px); opacity: 0; pointer-events: none; }
+.toast.show { opacity: 1; }
+@media (prefers-reduced-motion: no-preference) { .toast { transition: opacity .2s; } }
+</style>
+
+<header class="mast"><div class="wrap">
+  <div class="mast-row">
+    <h1>読書カード</h1>
+    <span class="call" id="call">— 冊</span>
+  </div>
+  <p class="src" id="src">Notion「training room」の本の記録から作成</p>
+</div></header>
+
+<main class="wrap">
+  <section class="ledger" aria-label="読書の統計">
+    <div class="tabs" id="tabs" role="tablist"></div>
+    <div class="figs">
+      <div class="fig"><span class="l" id="l1">今年</span><span class="n" id="n1">–</span><span class="u" id="u1">冊</span></div>
+      <div class="fig"><span class="l">月平均</span><span class="n" id="n2">–</span><span class="u">冊</span></div>
+      <div class="fig"><span class="l">通算</span><span class="n" id="n3">–</span><span class="u">冊</span></div>
+      <div class="fig"><span class="l">通算の月平均</span><span class="n" id="n4">–</span><span class="u">冊</span></div>
+    </div>
+    <div class="chart">
+      <div class="cap" id="cap">月別の冊数</div>
+      <div class="bars" id="bars"></div>
+      <div class="xl" id="xl"></div>
+    </div>
+    <p class="fine">読了日が空欄の本は、Notionに登録した日で数えています。本を開いて読了日を入れると集計に反映されます。</p>
+    <div class="row" style="margin-top:12px"><button class="btn line small" id="shareStats" type="button">この記録をシェア</button></div>
+  </section>
+
+  <section aria-label="本棚">
+    <div class="shelf-head">
+      <h2>書架<small id="cnt"></small></h2>
+      <input type="search" id="q" placeholder="タイトルで探す" aria-label="タイトルで探す">
+    </div>
+    <ul class="shelf" id="shelf"></ul>
+  </section>
+</main>
+
+<div class="sheet" id="sheet" hidden>
+  <article class="card" role="dialog" aria-modal="true" aria-labelledby="dTitle">
+    <button class="x" id="close" type="button" aria-label="閉じる">×</button>
+    <div class="card-grid">
+      <div class="side">
+        <div class="cover big" id="dCover"></div>
+        <div class="edit-only row">
+          <label class="btn line small" for="coverFile">表紙の画像を選ぶ</label>
+          <input type="file" id="coverFile" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+          <button class="linkish" id="coverReset" type="button" hidden>元に戻す</button>
+        </div>
+      </div>
+      <div style="min-width:0">
+        <h2 id="dTitle"></h2>
+        <div class="meta">
+          <span>読了 <span class="stampdate" id="dStamp"></span></span>
+          <label class="edit-only">読了日を変更 <input type="date" id="dDate"></label>
+          <a id="dNotion" target="_blank" rel="noopener">Notionで開く ↗</a>
+        </div>
+
+        <section class="sec" id="secNotion" hidden>
+          <h3>Notionの記録</h3>
+          <div class="prose" id="dNotionNote"></div>
+        </section>
+
+        <section class="sec">
+          <h3>感想</h3>
+          <textarea class="edit-only" id="dNote" rows="7" placeholder="読んで感じたこと、仕事に使えそうなこと"></textarea>
+          <p class="hint edit-only" id="saveHint"></p>
+          <div class="prose ro-only" id="dNoteRO"></div>
+        </section>
+
+        <section class="sec" id="secVoice">
+          <h3>ボイスメモ</h3>
+          <div class="edit-only row">
+            <button class="btn" id="recBtn" type="button"><span class="dot"></span><span id="recLbl">録音する</span></button>
+            <span class="timer" id="timer"></span>
+            <label class="btn line small" for="voiceFile">音声ファイルを追加</label>
+            <input type="file" id="voiceFile" accept="audio/*,video/mp4,video/webm" hidden>
+          </div>
+          <p class="hint edit-only" id="voiceHint"></p>
+          <ul class="voices" id="voices"></ul>
+        </section>
+
+        <section class="sec" id="secAI">
+          <h3>AIの考察</h3>
+          <button class="btn edit-only" id="aiBtn" type="button">感想から考察してもらう</button>
+          <div class="prose ai" id="aiOut" hidden></div>
+        </section>
+
+        <section class="sec" style="border-bottom:0">
+          <h3>シェア</h3>
+          <div class="row">
+            <button class="btn" id="shCopy" type="button">シェア用の文章をコピー</button>
+            <a class="btn line" id="shX" target="_blank" rel="noopener">Xに投稿</a>
+            <a class="btn line" id="shLine" target="_blank" rel="noopener">LINEで送る</a>
+          </div>
+          <label class="hint edit-only" style="display:inline-flex;gap:6px;align-items:center;margin-top:10px"><input type="checkbox" id="shNote" checked> 感想の冒頭も添える</label>
+        </section>
+      </div>
+    </div>
+  </article>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script type="application/json" id="seed">[{"id":"3c6f9507f0cf8132aa67e21c6cdc456e","title":"人生の経営戦略――自分の人生を自分で考えて生きるための戦略コンセプト20","createdDate":"2026-08-24"},{"id":"2dbf9507f0cf80c79b96d5b8785961e8","title":"境界で踊る","createdDate":"2026-01-01"},{"id":"19cf9507f0cf80329b8bd7798d135f5e","title":"喜ばれる人になりなさい","readDate":"2025-02-16","createdDate":"2025-02-16","notionNote":"【感じたこと】\nビジネス書は大体ファーマットでできている。つまりそれは知識だけ得て実践しない人がとにかく多いということ。\n人から言われたことを実践できるかどうか。それが全て。\n最初は生い立ちばかりでつまらなかったが、後半にかけて面白くなった。\n【活用】\n思ったことはただ金を稼ぐだけなら、詐欺が一番手っ取り早い。しかし、情熱を持って生きるには「理念」や「大義」が必要だ。人生をかけられるかどうかだ。\nそのほうが長続きするし、金を稼ぎ続けられる。\n【著者について】\n「人は話し方が9割」の著者。\nこれは話し方のプロが書いたものではなく、出版会社の営業が著者に「話し方の本を書いてください」と依頼したところから企画が始まった。つまりは本も一種の立派なビジネスであり、プロジェクトなのだ。\n著者はたこ焼き屋からのスタートだったが、飲食店を通じて「人材育成」に面白みを感じていたようだ。\nつまり、最初のきっかけは飲食店だったが、本気で取り組んでいくうちにどこに面白さを感じていくかは分かれるのだ。\nこの著者も、2020年には飲食店事業からは完全に手を引いている。"},{"id":"19cf9507f0cf80c4bc43de994b2810a9","title":"流れとかたち――万物のデザインを決める新たな物理法則","readDate":"2025-02-01","createdDate":"2025-02-16","notionNote":"これはとんでもなく革命的な本だった。\nとにかくこれを読むことで物理学に興味が湧いた。\n自然、生物、宇宙、環境、全ては一つの物理法則の上に成り立っている。流動性があるものは「より早く、そしてより良く」進化するのだ。\nそこに機械も生物も木も自然も何もない。\n人は仕事をすれば、より早く、より効率的に、多くの金を稼ぎたいと思うだろう。\nとなれば、より早く、より効率的に、多くの金を稼ぐものだけが生き残る。\nつまりはそうでないものは淘汰されるということ。\n全てはスムーズになるということ。\n\nじゃあ、自動車、機械、人間、大気、宇宙空間は何の目的（共通の目的）を持っているのか？\n\n答えは「攪拌」だ。\n\n全ては混じり合い、交配するためにできている。\n大気も植物も、人間も物質そのものも、技術と技術を掛け合わせたり、遺伝子を交換したり、あたたかい空気と冷たい空気を混じり合わせたりする。\n\nそういうこと。"},{"id":"5f900144fc194128948441eda6ec075a","title":"脳の中の天使","createdDate":"2024-08-03"},{"id":"190d9fa54fb64bdf8100d8ceeb1abce5","title":"運動脳","readDate":"2024-06-13","createdDate":"2024-06-15","notionNote":"大事なこと：運動は記憶力を高める。\n\n脳は移動するために作られた。"},{"id":"2992caf27496418bb02c1a6b009569ef","title":"ともだちや","createdDate":"2024-06-04"},{"id":"21a176226fdc4bf2b8662a1fba4096dc","title":"世界は経営でできている","createdDate":"2024-06-02"},{"id":"18c0b520c7b940f88d843fdf51d2eee9","title":"ラインゴールド","createdDate":"2024-04-02"},{"id":"c9c7b4ea0a014d2a92e3961ff70f6aea","title":"ゲーム理論入門","createdDate":"2024-03-25"},{"id":"28d528ca9c1a4b0dad7f6ca55de83e0a","title":"叩かれるから今まで黙っておいた世の中の真実","createdDate":"2024-03-25"},{"id":"17085f9f2c00434a9c143e5d589b50a8","title":"スラッジ","createdDate":"2024-03-25"},{"id":"1e52b67cd6234c8693a68c1b52566e4e","title":"THE WORLD FOR SALE","createdDate":"2024-03-25"},{"id":"35f7f2ccd6d44e93822c8954085ef047","title":"ボディ&ソウル　ある社会学者のボクシング・エスノグラフィー","createdDate":"2024-03-25"},{"id":"5a09033e545841808d9884253af8872e","title":"高度成長　日本を変えた六〇〇〇日","createdDate":"2024-03-25"},{"id":"e43967df080f42a3b4cc244b2fe1a83f","title":"企業参謀","createdDate":"2024-03-25"},{"id":"d36278da3cfd46d5a6932ec799ebff9e","title":"豪華の市","createdDate":"2024-03-25"},{"id":"71bbea3711fe4f4aa13e9cf9c4383869","title":"お金の神様に可愛がられる手帳2022","createdDate":"2024-03-25"},{"id":"3dbaf3c629cc4131b886c1cff99ec4ea","title":"自由と規律","createdDate":"2024-03-25"},{"id":"4c21171bf18f4119b579bb20dbb7414c","title":"21レッスン","createdDate":"2024-03-25"},{"id":"9357b09472924e4b8f25c3f7291143cf","title":"ホモデウス","createdDate":"2024-03-25"},{"id":"647f2dfd12cd4dde882d21d3817f8aa8","title":"地球の歩き方　ムー","createdDate":"2024-03-25"},{"id":"ab37a7ab463e409483b5c9856d0c3372","title":"ミイラの地下墓地から大脱出","createdDate":"2024-03-25"},{"id":"50db2f90822b46fd8b82216c6e041567","title":"すぐやる人のやらない事リスト","createdDate":"2024-03-25"},{"id":"6f839d14f8ec48bf9dae481abbf16218","title":"ブランディングが9割","createdDate":"2024-03-25"},{"id":"da83a1180ebe45d38107d01a992fa0ea","title":"ファブル完全殺さないマニュアル","createdDate":"2024-03-25"},{"id":"df14d5e8c9014a2eb60d498c743ef874","title":"ケンドリックラマー伝","createdDate":"2024-03-25"},{"id":"4e9d37d6ef61469182d71310b06b7437","title":"麻薬と人間","createdDate":"2024-03-25"},{"id":"a1cb2f0e9aef48e8a1608fdfde5f15f3","title":"富裕層のためのヘッジファンド投資入門","createdDate":"2024-03-25"},{"id":"cc5a013d280541a68b252d8057048931","title":"六本木ナイトストーリー","createdDate":"2024-03-25"},{"id":"acf9bb59700d4800bd2f270baf81db44","title":"超ライティング大全","createdDate":"2024-03-25"},{"id":"e3132f1bf11c4dd8882047c594a535b7","title":"五万円からでも始められる！黒字転換で","createdDate":"2024-03-25"},{"id":"80351d18f0164a5bad7ba07f1f5ded41","title":"不動産投資の常識を極度に打ち破る！物件無料ゲット法","createdDate":"2024-03-25"},{"id":"a1f3bb92794a4288951aeb655715eeb5","title":"サラリーマンガ四季報","createdDate":"2024-03-25"},{"id":"9896f4a6f43345c9bb1d3a30db09a533","title":"週末ツーリング","createdDate":"2024-03-25"},{"id":"51e97c442ad64515ad8958613107714e","title":"図説　日本未確認生物事典","createdDate":"2024-03-25"},{"id":"99d4c6b8851c418cad02b26880be93c9","title":"精神科医が見つけた 3つの幸福","createdDate":"2024-03-25"},{"id":"8a05c7b3dbb24aa7861b4a7324ab31ff","title":"彼女は頭が悪いから","createdDate":"2024-03-25"},{"id":"416bd0d6cbc04b02b12ca7c32f1db5c4","title":"野垂れ死に　ある講談社","createdDate":"2024-03-25"},{"id":"88d104fb9fc248e6b4f132dc6cd6afbd","title":"2016年の週刊文春","createdDate":"2024-03-25"},{"id":"5846d10923b34165908ccf1345da2c97","title":"ブロックチェーンゲームの遊び方","createdDate":"2024-03-25"},{"id":"7cad2236a6984eb6952a9c34e95c6482","title":"職業としてのヤクザ","createdDate":"2024-03-25"},{"id":"1cad0dbbc8524f9888648e793c524d92","title":"スピード SPEED","createdDate":"2024-03-25"},{"id":"ec87d9159baf4b479364aca8fab9a6dd","title":"BAD BLOOD シリコンバレー最大の捏造","createdDate":"2024-03-22"},{"id":"d580ced298a44a22bf15dcda82fcc320","title":"テスカポリトカ","createdDate":"2024-03-22"},{"id":"6bffbe4bd46940f58a985530335c7425","title":"テクノブレイク","createdDate":"2024-03-22"},{"id":"72c5a67472db4c228084b4908d977ee5","title":"アンチソーシャルディスタンス","createdDate":"2024-03-22"},{"id":"05ebde322bbc484aaa4a19d47c5d0153","title":"ハートドリブン","readDate":"2023-12-01","createdDate":"2024-03-25"},{"id":"4e98e7e4f2104d469b23e54d2d27e905","title":"ファクトフルネス","readDate":"2023-12-01","createdDate":"2024-03-25"},{"id":"7876a06671b94fb4890928b5623af359","title":"しなばもろとも","readDate":"2023-12-01","createdDate":"2024-03-25"},{"id":"a6414c3139cf4156b857a8d2be1b9616","title":"勝てば官軍","readDate":"2023-12-01","createdDate":"2024-03-25"},{"id":"48b624f8709042c3981f1c3012720311","title":"ロングゲーム","readDate":"2023-10-01","createdDate":"2024-03-25"}]</script>
+<script>
+(() => {
+const SHARE_URL = 'https://claude.ai/artifact/PwHjwGd8aQFAGPGdDbcuaA';
+const BOOKS = JSON.parse(document.getElementById('seed').textContent);
+const $ = (s) => document.querySelector(s);
+const S = { notes: {}, voices: [], year: null, q: '', cur: null, canWrite: true, db: null, assets: null, sample: null };
+const PAL = ['#24423a', '#5a2a2e', '#2a3f5c', '#3b3a52', '#4f4433', '#1f4f55', '#6a3a26', '#34405a', '#45503d', '#50331f'];
+const hash = (s) => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
+const clean = (t) => t.replace(/<[^>]+>/g, '');
+const dateOf = (b) => (S.notes[b.id] && S.notes[b.id].readDate) || b.readDate || b.createdDate;
+const yearOf = (b) => Number(dateOf(b).slice(0, 4));
+const f1 = (n) => (Math.round(n * 10) / 10).toFixed(1);
+const dots = (d) => d.replaceAll('-', '.');
+const toast = (m) => { const t = $('#toast'); t.textContent = m; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2400); };
+const blobUrl = (id) => '/_blob/' + id;
+const noteText = (b) => ((S.notes[b.id] && S.notes[b.id].note) || b.notionNote || '').trim();
+
+/* ---------- 統計 ---------- */
+function renderStats() {
+  const now = new Date(), cy = now.getFullYear(), cm = now.getMonth() + 1;
+  const first = BOOKS.map(dateOf).sort()[0];
+  const fy = Number(first.slice(0, 4)), fm = Number(first.slice(5, 7));
+  const years = [...new Set(BOOKS.map(yearOf))].sort((a, b) => b - a);
+  if (S.year == null) S.year = years.includes(cy) ? cy : years[0];
+  const tabs = $('#tabs'); tabs.replaceChildren();
+  for (const y of [...years, 'all']) {
+    const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'tab');
+    b.textContent = y === 'all' ? 'すべて' : y + '年'; b.setAttribute('aria-selected', String(S.year === y));
+    b.onclick = () => { S.year = y; renderStats(); renderShelf(); };
+    tabs.append(b);
+  }
+  const total = BOOKS.length, span = (cy - fy) * 12 + (cm - fm) + 1;
+  $('#n3').textContent = total; $('#n4').textContent = f1(total / span);
+  $('#call').textContent = 'No. ' + String(total).padStart(4, '0');
+  let counts, labels;
+  if (S.year === 'all') {
+    const ys = [...years].reverse();
+    counts = ys.map((y) => BOOKS.filter((b) => yearOf(b) === y).length);
+    labels = ys.map((y) => "'" + String(y).slice(2));
+    $('#l1').textContent = '年平均'; $('#n1').textContent = f1(total / (span / 12));
+    $('#n2').textContent = f1(total / span);
+    $('#cap').textContent = '年別の冊数（' + fy + '年' + fm + '月〜）';
+  } else {
+    const y = S.year, inY = BOOKS.filter((b) => yearOf(b) === y);
+    counts = Array.from({ length: 12 }, (_, i) => inY.filter((b) => Number(dateOf(b).slice(5, 7)) === i + 1).length);
+    labels = counts.map((_, i) => String(i + 1));
+    const s = y === fy ? fm : 1, e = y === cy ? cm : 12, m = Math.max(1, e - s + 1);
+    $('#l1').textContent = y + '年'; $('#n1').textContent = inY.length;
+    $('#n2').textContent = f1(inY.length / m);
+    $('#cap').textContent = y + '年 月別の冊数（月平均は' + s + '〜' + e + '月の' + m + 'か月で計算）';
+  }
+  const max = Math.max(1, ...counts), cols = 'repeat(' + counts.length + ', minmax(0, 1fr))';
+  const bars = $('#bars'), xl = $('#xl'); bars.style.gridTemplateColumns = cols; xl.style.gridTemplateColumns = cols;
+  bars.replaceChildren(); xl.replaceChildren();
+  counts.forEach((c, i) => {
+    const col = document.createElement('div'); col.className = 'bar-col'; col.title = labels[i] + ': ' + c + '冊';
+    const v = document.createElement('span'); v.className = 'v'; v.textContent = c || '';
+    const bar = document.createElement('span'); bar.className = 'b'; bar.style.height = (c / max) * 84 + '%';
+    col.append(v, bar); bars.append(col);
+    const l = document.createElement('span'); l.textContent = labels[i]; xl.append(l);
+  });
+}
+
+/* ---------- 表紙 ---------- */
+function coverEl(b) {
+  const box = document.createElement('div'); box.className = 'cover';
+  const n = S.notes[b.id];
+  if (n && n.coverAsset) {
+    const img = new Image(); img.alt = ''; img.src = blobUrl(n.coverAsset);
+    img.onerror = () => { img.remove(); box.append(typo(b)); };
+    box.append(img);
+  } else box.append(typo(b));
+  return box;
+}
+function typo(b) {
+  const d = document.createElement('div'); d.className = 'typo'; d.style.background = PAL[hash(b.title) % PAL.length];
+  const t = document.createElement('div'); t.className = 'tt'; t.textContent = clean(b.title);
+  const l = document.createElement('div'); l.className = 'lbl'; l.textContent = dots(dateOf(b)).slice(0, 7);
+  d.append(t, l); return d;
+}
+
+/* ---------- 書架 ---------- */
+function renderShelf() {
+  const q = S.q.trim().toLowerCase();
+  const list = BOOKS.filter((b) => S.year === 'all' || yearOf(b) === S.year)
+    .filter((b) => !q || clean(b.title).toLowerCase().includes(q))
+    .sort((a, b) => dateOf(b).localeCompare(dateOf(a)));
+  $('#cnt').textContent = list.length + '冊';
+  const ul = $('#shelf'); ul.replaceChildren();
+  for (const b of list) {
+    const li = document.createElement('li');
+    const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'book';
+    const t = document.createElement('div'); t.className = 't'; t.textContent = clean(b.title);
+    const d = document.createElement('div'); d.className = 'd'; d.textContent = dots(dateOf(b));
+    const m = document.createElement('div'); m.className = 'marks';
+    const n = S.notes[b.id] || {};
+    const add = (s) => { const e = document.createElement('span'); e.className = 'mark'; e.textContent = s; m.append(e); };
+    if (noteText(b)) add('感想');
+    if (S.voices.some((v) => v.bookId === b.id)) add('声');
+    if (n.ai) add('AI');
+    btn.append(coverEl(b), t, d, m);
+    btn.onclick = () => openCard(b.id);
+    li.append(btn); ul.append(li);
+  }
+}
+
+/* ---------- カード ---------- */
+function openCard(id) {
+  const b = BOOKS.find((x) => x.id === id); if (!b) return;
+  S.cur = b; const n = S.notes[id] || {};
+  $('#dCover').replaceWith(Object.assign(coverEl(b), { id: 'dCover' })); $('#dCover').classList.add('big');
+  $('#coverReset').hidden = !n.coverAsset;
+  $('#dTitle').textContent = clean(b.title);
+  $('#dStamp').textContent = dots(dateOf(b)) + ((n.readDate || b.readDate) ? '' : '（登録日）');
+  $('#dDate').value = dateOf(b);
+  $('#dNotion').href = 'https://www.notion.so/' + b.id;
+  $('#secNotion').hidden = !b.notionNote; $('#dNotionNote').textContent = b.notionNote || '';
+  if (document.activeElement !== $('#dNote')) $('#dNote').value = n.note || '';
+  $('#dNoteRO').textContent = S.canWrite ? '' : (n.note || (b.notionNote ? '' : 'まだ感想はありません。'));
+  $('#saveHint').textContent = n.updatedAt ? '保存済み ' + new Date(n.updatedAt).toLocaleString('ja-JP') : '入力すると自動で保存されます';
+  renderAI(); renderVoices(); refreshShare();
+  $('#sheet').hidden = false; document.body.style.overflow = 'hidden';
+  try { history.replaceState(null, '', '#b-' + id); } catch (e) {}
+}
+function closeCard() {
+  if (rec) stopRec();
+  $('#sheet').hidden = true; document.body.style.overflow = ''; S.cur = null;
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+}
+$('#close').onclick = closeCard;
+$('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeCard(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#sheet').hidden) closeCard(); });
+
+/* ---------- 保存 ---------- */
+async function saveNote(id, patch) {
+  if (!S.db) throw new Error('保存先に接続できません');
+  const merged = Object.assign({}, S.notes[id] || {}, patch, { updatedAt: new Date().toISOString() });
+  S.notes[id] = merged;
+  await S.db.doc('notes/' + id).set(merged);
+  return merged;
+}
+let noteTimer, notePending = Promise.resolve();
+$('#dNote').addEventListener('input', () => {
+  const b = S.cur, val = $('#dNote').value; $('#saveHint').textContent = '入力中…';
+  clearTimeout(noteTimer);
+  noteTimer = setTimeout(() => {
+    notePending = notePending.then(() => saveNote(b.id, { note: val }))
+      .then((s) => { $('#saveHint').textContent = '保存済み ' + new Date(s.updatedAt).toLocaleTimeString('ja-JP'); renderShelf(); refreshShare(); })
+      .catch(() => { $('#saveHint').textContent = '保存できませんでした。通信状態を確認して、もう一度入力してください。'; });
+  }, 800);
+});
+$('#dDate').addEventListener('change', async () => {
+  const b = S.cur;
+  try { await saveNote(b.id, { readDate: $('#dDate').value || null }); toast('読了日を更新しました'); renderStats(); renderShelf(); openCard(b.id); }
+  catch (e) { toast('読了日を保存できませんでした'); }
+});
+
+/* 表紙アップロード */
+$('#coverFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0]; e.target.value = ''; if (!file || !S.cur) return;
+  if (!S.assets) return toast('画像を保存できる権限がありません');
+  const b = S.cur; toast('表紙を保存中…');
+  try { const r = await S.assets.upload(file); await saveNote(b.id, { coverAsset: r.id }); renderShelf(); openCard(b.id); toast('表紙を変更しました'); }
+  catch (err) { toast(err && err.code === 'unsupported_type' ? 'PNG・JPEG・WebP・GIFの画像を選んでください' : '表紙を保存できませんでした'); }
+});
+$('#coverReset').onclick = async () => { const b = S.cur; await saveNote(b.id, { coverAsset: null }); renderShelf(); openCard(b.id); };
+
+/* ---------- ボイスメモ ---------- */
+let rec = null;
+function renderVoices() {
+  const b = S.cur, ul = $('#voices'); ul.replaceChildren();
+  const vs = S.voices.filter((v) => v.bookId === b.id).sort((a, c) => a.createdAt.localeCompare(c.createdAt));
+  $('#secVoice').hidden = !S.canWrite && !vs.length;
+  for (const v of vs) {
+    const li = document.createElement('li');
+    const meta = document.createElement('div'); meta.className = 'vm';
+    const w = document.createElement('span'); w.textContent = new Date(v.createdAt).toLocaleString('ja-JP') + (v.dur ? ' · ' + Math.round(v.dur) + '秒' : '');
+    meta.append(w);
+    if (S.canWrite) {
+      const del = document.createElement('button'); del.type = 'button'; del.className = 'linkish'; del.textContent = '削除';
+      del.onclick = () => {
+        const c = document.createElement('span'); c.className = 'confirm'; c.textContent = '削除しますか？ ';
+        const yes = document.createElement('button'); yes.type = 'button'; yes.className = 'linkish'; yes.textContent = '削除する';
+        const no = document.createElement('button'); no.type = 'button'; no.className = 'linkish'; no.textContent = 'やめる';
+        yes.onclick = async () => {
+          try { await S.db.doc('voices/' + v.id).delete(); if (S.assets) S.assets.delete(v.asset).catch(() => {}); toast('削除しました'); }
+          catch (e) { toast('削除できませんでした'); }
+        };
+        no.onclick = () => c.replaceWith(del);
+        c.append(yes, no); del.replaceWith(c);
+      };
+      meta.append(del);
+    }
+    const au = document.createElement('audio'); au.controls = true; au.preload = 'metadata'; au.src = blobUrl(v.asset);
+    li.append(meta, au);
+    if (v.transcript) { const p = document.createElement('p'); p.className = 'vt'; p.textContent = v.transcript; li.append(p); }
+    ul.append(li);
+  }
+}
+async function saveVoice(blob, dur, transcript) {
+  if (!S.assets || !S.db) throw new Error('no-cap');
+  const raw = (blob.type || '').split(';')[0];
+  const type = /mp4|m4a|aac|quicktime/.test(raw) ? 'video/mp4' : /webm|ogg/.test(raw) ? 'video/webm' : raw;
+  const r = await S.assets.upload(blob, { type });
+  const id = 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  await S.db.doc('voices/' + id).set({ bookId: S.cur.id, asset: r.id, dur: dur || null, transcript: transcript || null, createdAt: new Date().toISOString() });
+}
+async function startRec() {
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch (e) { $('#voiceHint').textContent = 'この画面ではマイクを使えませんでした。スマホのボイスメモで録音して「音声ファイルを追加」から登録できます。'; return; }
+  const mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find((m) => window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || '';
+  const mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+  rec = { mr, stream, chunks: [], t0: Date.now(), finals: [] };
+  mr.ondataavailable = (e) => e.data.size && rec && rec.chunks.push(e.data);
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SR) { try { const sr = new SR(); sr.lang = 'ja-JP'; sr.continuous = true; sr.interimResults = false;
+    sr.onresult = (e) => { for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal && rec) rec.finals.push(e.results[i][0].transcript); $('#voiceHint').textContent = rec ? rec.finals.join('') : ''; };
+    sr.start(); rec.sr = sr; } catch (e) {} }
+  mr.start(1000);
+  $('#recBtn').classList.add('rec-on'); $('#recLbl').textContent = '止めて保存'; $('#voiceHint').textContent = '録音中…';
+  rec.tick = setInterval(() => { const s = Math.floor((Date.now() - rec.t0) / 1000); $('#timer').textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }, 250);
+}
+async function stopRec() {
+  const r = rec; rec = null; clearInterval(r.tick);
+  $('#recBtn').classList.remove('rec-on'); $('#recLbl').textContent = '録音する'; $('#timer').textContent = '';
+  if (r.sr) try { r.sr.stop(); } catch (e) {}
+  await new Promise((res) => { r.mr.onstop = res; r.mr.stop(); });
+  r.stream.getTracks().forEach((t) => t.stop());
+  const dur = (Date.now() - r.t0) / 1000; if (dur < 1 || !S.cur) { $('#voiceHint').textContent = ''; return; }
+  const blob = new Blob(r.chunks, { type: (r.mr.mimeType || 'audio/webm').split(';')[0] });
+  $('#voiceHint').textContent = '保存中…';
+  try { await saveVoice(blob, dur, r.finals.join('')); $('#voiceHint').textContent = ''; toast('ボイスメモを保存しました'); }
+  catch (e) { $('#voiceHint').textContent = 'ボイスメモを保存できませんでした。'; }
+}
+$('#recBtn').onclick = () => (rec ? stopRec() : startRec());
+$('#voiceFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0]; e.target.value = ''; if (!file || !S.cur) return;
+  const dur = await new Promise((res) => { const a = document.createElement('audio'); a.preload = 'metadata'; a.onloadedmetadata = () => res(isFinite(a.duration) ? a.duration : null); a.onerror = () => res(null); a.src = URL.createObjectURL(file); });
+  $('#voiceHint').textContent = '保存中…';
+  try { await saveVoice(file, dur, null); $('#voiceHint').textContent = ''; toast('ボイスメモを保存しました'); }
+  catch (err) { $('#voiceHint').textContent = err && err.code === 'unsupported_type' ? 'この形式は保存できません。m4a・mp4・webm の音声を選んでください（iPhoneのボイスメモはそのまま使えます）。' : 'ボイスメモを保存できませんでした。'; }
+});
+
+/* ---------- AI ---------- */
+function renderAI() {
+  const n = S.notes[S.cur.id] || {}, out = $('#aiOut');
+  out.hidden = !n.ai; out.textContent = n.ai || '';
+  if (n.ai && n.aiAt) { const m = document.createElement('div'); m.className = 'ai-meta'; m.textContent = new Date(n.aiAt).toLocaleString('ja-JP') + ' 生成'; out.append(m); }
+  $('#aiBtn').textContent = n.ai ? 'もう一度考察してもらう' : '感想から考察してもらう';
+  $('#aiBtn').hidden = !S.sample;
+  $('#secAI').hidden = !S.canWrite && !n.ai || (!S.sample && !n.ai);
+}
+$('#aiBtn').onclick = async () => {
+  const b = S.cur, btn = $('#aiBtn'), out = $('#aiOut');
+  const vs = S.voices.filter((v) => v.bookId === b.id && v.transcript).map((v) => v.transcript);
+  const note = $('#dNote').value.trim();
+  const memo = [b.notionNote && '【Notionの記録】\n' + b.notionNote, note && '【感想】\n' + note, vs.length && '【ボイスメモの書き起こし】\n' + vs.join('\n---\n')].filter(Boolean).join('\n\n');
+  if (!memo) { out.hidden = false; out.textContent = '先に感想を書くか、ボイスメモを残してください。'; return; }
+  btn.disabled = true; btn.textContent = '考察中…'; out.hidden = false; out.textContent = '';
+  const prompt = 'あなたは読書会の良き対話相手です。以下は『' + clean(b.title) + '』を読んだ人の感想です。\n\n' + memo +
+    '\n\nこの感想への考察を日本語で、次の見出し（【】）で全体600字程度にまとめてください。\n【要点】感想の核になっている主張を1〜2文で\n【深掘り】その主張の背景にある価値観や、本の内容とのつながり\n【別の視点】反対の立場や見落としがちな論点をひとつ\n【次の一手】仕事や生活で試せる具体的な行動を2つ\n【次に読む本】関連して読むと面白い実在の本を2冊（書名と著者）\n感想の言葉を引用しながら、持ち上げすぎず率直に。前置きは不要です。';
+  try {
+    const r = await S.sample(prompt, { onText: ({ text }) => { out.textContent = text; } });
+    await saveNote(b.id, { ai: r.text, aiAt: new Date().toISOString() });
+    if (S.cur && S.cur.id === b.id) renderAI(); renderShelf();
+  } catch (e) {
+    out.textContent = e && e.code === 'rate_limited' ? '混み合っています。少し時間をおいてもう一度押してください。' : e && e.code === 'not_granted' ? 'AIの利用が許可されていません。' : '考察を作れませんでした。もう一度押してください。';
+  } finally { btn.disabled = false; if (S.cur) renderAI(); }
+};
+
+/* ---------- シェア ---------- */
+function shareText() {
+  const b = S.cur; let t = '『' + clean(b.title) + '』を読みました。';
+  const body = noteText(b).replace(/\s+/g, ' ');
+  if ($('#shNote').checked && body) t += '\n「' + body.slice(0, 70) + (body.length > 70 ? '…' : '') + '」';
+  return t;
+}
+const linkFor = (b) => SHARE_URL + (b ? '#b-' + b.id : '');
+function refreshShare() {
+  if (!S.cur) return; const t = shareText(), u = linkFor(S.cur);
+  $('#shX').href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(t) + '&url=' + encodeURIComponent(u);
+  $('#shLine').href = 'https://line.me/R/msg/text/?' + encodeURIComponent(t + '\n' + u);
+}
+$('#shNote').onchange = refreshShare;
+async function copy(s) {
+  try { await navigator.clipboard.writeText(s); toast('コピーしました'); }
+  catch (e) { const ta = document.createElement('textarea'); ta.value = s; document.body.append(ta); ta.select(); try { document.execCommand('copy'); toast('コピーしました'); } catch (x) { toast('コピーできませんでした'); } ta.remove(); }
+}
+$('#shCopy').onclick = () => copy(shareText() + '\n' + linkFor(S.cur));
+$('#shareStats').onclick = () => {
+  const t = S.year === 'all' ? 'これまでに' + BOOKS.length + '冊読みました（月平均' + $('#n4').textContent + '冊）。'
+    : S.year + '年は' + $('#n1').textContent + '冊読みました（月平均' + $('#n2').textContent + '冊）。';
+  copy(t + '\n' + linkFor());
+};
+$('#q').addEventListener('input', (e) => { S.q = e.target.value; renderShelf(); });
+
+/* ---------- 起動 ---------- */
+renderStats(); renderShelf();
+const fromHash = () => { const m = /^#b-([0-9a-f]{32})$/.exec(location.hash); if (m) openCard(m[1]); };
+fromHash();
+
+const use = (n) => (window.claude && window.claude.use ? window.claude.use(n).catch(() => null) : Promise.resolve(null));
+(async () => {
+  const [db, user, assets, sample] = await Promise.all([use('db'), use('user'), use('assets'), use('sample')]);
+  S.db = db; S.assets = assets; S.sample = sample;
+  let can = user ? await user.can('data.write') : null;
+  S.canWrite = !!db && can !== false;
+  document.body.classList.toggle('ro', !S.canWrite);
+  if (!db) { $('#src').textContent += ' · 感想やボイスメモはこの画面では保存されません'; return; }
+  db.collection('notes').onSnapshot((snap) => {
+    const next = {}; snap.docs.forEach((d) => { next[d.id] = d.data(); });
+    S.notes = next; renderStats(); renderShelf();
+    if (S.cur && !$('#sheet').hidden) { renderAI(); refreshShare(); }
+  }, () => {});
+  db.collection('voices').onSnapshot((snap) => {
+    S.voices = snap.docs.map((d) => Object.assign({ id: d.id }, d.data())); renderShelf();
+    if (S.cur && !$('#sheet').hidden) renderVoices();
+  }, () => {});
+  if (S.cur) openCard(S.cur.id);
+})();
+})();
+</script>
