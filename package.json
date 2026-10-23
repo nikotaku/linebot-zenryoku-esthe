@@ -1,0 +1,6 @@
+{
+  "name": "reading-log",
+  "private": true,
+  "type": "module",
+  "description": "Notion連携の読書記録サイト"
+}

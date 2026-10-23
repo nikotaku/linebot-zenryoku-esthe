@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>読書記録</title>
+<meta name="description" content="読んだ本と、その感想の記録。">
+<meta property="og:title" content="読書記録">
+<meta property="og:description" content="読んだ本と、その感想の記録。">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#f4efe6">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="masthead">
+  <div class="wrap">
+    <p class="kicker">READING LOG</p>
+    <h1>読書記録</h1>
+    <p class="sub" id="sourceLine">読み込み中…</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="stats" aria-label="読書の統計">
+    <div class="year-tabs" id="yearTabs" role="tablist"></div>
+    <div class="stat-row">
+      <div class="stat"><span class="stat-label" id="lblYear">今年</span><span class="stat-num" id="statYear">–</span><span class="stat-unit">冊</span></div>
+      <div class="stat"><span class="stat-label">月平均</span><span class="stat-num" id="statAvg">–</span><span class="stat-unit">冊／月</span></div>
+      <div class="stat"><span class="stat-label">通算</span><span class="stat-num" id="statTotal">–</span><span class="stat-unit">冊</span></div>
+      <div class="stat"><span class="stat-label">通算の月平均</span><span class="stat-num" id="statAvgAll">–</span><span class="stat-unit">冊／月</span></div>
+    </div>
+    <figure class="months">
+      <figcaption id="monthsCap">月別の冊数</figcaption>
+      <div class="month-bars" id="monthBars"></div>
+    </figure>
+    <p class="note-small">※読了日が未入力の本は、Notionに登録した日で数えています。本を開いて読了日を入れると集計に反映されます。</p>
+    <div class="stat-actions">
+      <button class="btn ghost" id="shareYear">この年の記録をシェア</button>
+    </div>
+  </section>
+
+  <section aria-label="本の一覧">
+    <div class="shelf-head">
+      <h2 id="shelfTitle">本棚</h2>
+      <input type="search" id="search" placeholder="タイトルで探す" aria-label="タイトルで探す">
+    </div>
+    <ul class="shelf" id="shelf"></ul>
+  </section>
+</main>
+
+<dialog id="detail" class="detail">
+  <div class="detail-inner">
+    <button class="close" id="closeDetail" aria-label="閉じる">×</button>
+    <div class="detail-grid">
+      <div class="detail-cover" id="dCover"></div>
+      <div class="detail-body">
+        <h2 id="dTitle"></h2>
+        <div class="meta">
+          <label>読了日 <input type="date" id="dDate"></label>
+          <a id="dNotion" target="_blank" rel="noopener">Notionで開く ↗</a>
+        </div>
+
+        <section class="block" id="dNotionBlock" hidden>
+          <h3>Notionの記録</h3>
+          <div class="prose" id="dNotionNote"></div>
+        </section>
+
+        <section class="block">
+          <h3>感想</h3>
+          <textarea id="dNote" rows="7" placeholder="読んで感じたこと、使えそうなこと…"></textarea>
+          <p class="save-state" id="saveState"></p>
+          <div class="prose readonly-only" id="dNoteRead"></div>
+        </section>
+
+        <section class="block">
+          <h3>ボイスメモ</h3>
+          <div class="rec owner-only">
+            <button class="btn rec-btn" id="recBtn"><span class="dot"></span><span id="recLabel">録音する</span></button>
+            <span class="rec-time" id="recTime"></span>
+          </div>
+          <p class="live" id="liveText"></p>
+          <ul class="voices" id="voices"></ul>
+        </section>
+
+        <section class="block">
+          <h3>AIの考察</h3>
+          <button class="btn owner-only" id="aiBtn">感想から考察してもらう</button>
+          <div class="prose ai" id="aiOut"></div>
+        </section>
+
+        <section class="block share">
+          <h3>シェア</h3>
+          <div class="share-row">
+            <button class="btn" id="shareNative">シェア</button>
+            <a class="btn ghost" id="shareX" target="_blank" rel="noopener">Xに投稿</a>
+            <a class="btn ghost" id="shareLine" target="_blank" rel="noopener">LINEで送る</a>
+            <button class="btn ghost" id="copyLink">リンクをコピー</button>
+          </div>
+          <label class="owner-only share-opt"><input type="checkbox" id="shareWithNote" checked> 感想の冒頭も添える</label>
+        </section>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="/config.js"></script>
+<script src="/app.js" type="module"></script>
+</body>
+</html>
